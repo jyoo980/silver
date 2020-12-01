@@ -8,12 +8,14 @@ class InlinePredicatePlugin extends SilverPlugin with ParserPluginTemplate with 
   private[this] val InlinePredicateKeyword = "inline"
 
   override def beforeVerify(input: Program): Program = {
-     val inlinedPredicateMethods = input.methods.map(inlinePredicates(_, input))
+    val expandablePredicateIds = collectExpandablePredicateIds(input.methods, input)
+    val inlinedPredicateMethods = input.methods.map(inlinePredicates(_, input))
+    val foldUnfoldRemoved = inlinedPredicateMethods.map(removeUnfoldFold(_, expandablePredicateIds))
 
-    println(s"METHODS BEFORE")
+    println(s"METHODS BEFORE INLINING")
     println(s"${input.methods}")
-    println(s"METHODS AFTER")
-    println(s"$inlinedPredicateMethods")
+    println(s"METHODS AFTER INLINING")
+    println(s"$foldUnfoldRemoved")
 
 //
 //    val newProgram: Program = ViperStrategy.Slim({
