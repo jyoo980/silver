@@ -1,6 +1,6 @@
 package viper.silver.plugin.standard.inline
 
-import viper.silver.ast.{Exp, Fold, LocalVar, Method, PredicateAccess, PredicateAccessPredicate, Program, Seqn, Stmt, Unfold}
+import viper.silver.ast._
 
 trait InlineRewrite {
 
@@ -20,15 +20,16 @@ trait InlineRewrite {
     val expandedPres = method.pres.map { pre =>
       expandPredicate(pre, program).fold(pre)(expandedPred => expandedPred)
     }
-    //    val expandedPosts = method.posts.map { post =>
-    //      expandPredicate(post, program).fold(post)(expandedPred => expandedPred)
-    //    }
+    // TODO: test postcondition expansion works
+    // val expandedPosts = method.posts.map { post =>
+    //  expandPredicate(post, program).fold(post)(expandedPred => expandedPred)
+    // }
     method.copy(name = method.name,
-    formalArgs = method.formalArgs,
-    formalReturns = method.formalReturns,
-    pres = expandedPres,
-    posts = method.posts,
-    body = method.body
+      formalArgs = method.formalArgs,
+      formalReturns = method.formalReturns,
+      pres = expandedPres,
+      posts = method.posts,
+      body = method.body
     )(pos = method.pos, info = method.info, errT = method.errT)
   }
 
@@ -44,32 +45,27 @@ trait InlineRewrite {
       )
     }
     method.copy(name = method.name,
-    formalArgs = method.formalArgs,
-    formalReturns = method.formalReturns,
-    pres = method.pres,
-    posts = method.posts,
-    body = rewrittenBody
+      formalArgs = method.formalArgs,
+      formalReturns = method.formalReturns,
+      pres = method.pres,
+      posts = method.posts,
+      body = rewrittenBody
     )(pos = method.pos, info = method.info, errT = method.errT)
   }
 
   private[this] def expandPredicate(expr: Exp, program: Program): Option[Exp] =
-  expr match {
-      case PredicateAccessPredicate(pred, _) =>
-        getPredicateBody(pred, program)
-      case _ => None
+    expr match {
+        case PredicateAccessPredicate(pred, _) =>
+          getPredicateBody(pred, program)
+        case _ => None
     }
 
   private[this] def getPredicateBody(pred: PredicateAccess, program: Program): Option[Exp] = {
-    def extractLocalVarIds(predicate: PredicateAccess): Set[String] =
-    predicate.args.map {
-        case LocalVar(name, _) => name
-        case _ => ""
-      }.filter(_.nonEmpty).toSet
-
-    val args = extractLocalVarIds(pred)
-    pred.predicateBody(program, args)
+    val localVarIds = pred.args.collect {
+      case LocalVar(name, _) => name
+    }.toSet
+    pred.predicateBody(program, localVarIds)
   }
-
 
   private[this] def removeUnfolds(bodyStmts: Seq[Stmt], predicatesToRemove: Seq[String]): Seq[Stmt] = {
     def filterUnfolds(seqn: Seqn): Seqn = {
