@@ -1,0 +1,7 @@
+field left: Int
+field right: Int
+
+// Before plugin
+predicate tuple(this: Ref) {
+  acc(this.left) && acc(this.right)
+}

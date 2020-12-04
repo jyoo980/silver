@@ -1,0 +1,3 @@
+runtime [s];input file;run configuration;exit code;timeout
+0.08023444400168955;scripts/after_plugin.vpr;baseConfig;2;False
+0.06757808499969542;scripts/before_plugin.vpr;baseConfig;2;False

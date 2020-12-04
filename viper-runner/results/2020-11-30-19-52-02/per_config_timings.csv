@@ -1,0 +1,3 @@
+input file;base, runtime [s];base, exit condition;base, timeout
+scripts/after_plugin.vpr;0.06737169111147523;2;False
+scripts/before_plugin.vpr;0.06889686698559672;2;False
