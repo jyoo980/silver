@@ -1,3 +1,0 @@
-input file;baseConfig, runtime [s];baseConfig, exit condition;baseConfig, timeout
-scripts/after_plugin.vpr;0.06878953706473112;2;False
-scripts/before_plugin.vpr;0.06885457399766892;2;False
