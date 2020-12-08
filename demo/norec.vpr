@@ -1,0 +1,6 @@
+field left: Int
+field right: Int
+
+predicate norec(this: Ref) {
+  acc(this.left) && acc(this.right)
+}

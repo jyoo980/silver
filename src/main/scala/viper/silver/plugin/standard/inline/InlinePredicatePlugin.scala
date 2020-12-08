@@ -35,12 +35,25 @@ class InlinePredicatePlugin extends SilverPlugin with ParserPluginTemplate
       rewriteMethod(inlinedPredMethod, input, prePredIds, postPredIds)
     }
     // TODO: Do we also need to rewrite functions?
-    ViperStrategy.Slim({
-      case program@Program(_, _, _, predicates, methods, extensions) =>
+    val rewrittenProgram = ViperStrategy.Slim({
+      case program@Program(_, _, _, predicates, _, extensions) =>
         program.copy(
           methods = rewrittenMethods,
-          predicates = predicates ++ extensions.collect{case InlinePredicate(p) => p},  
+          predicates = predicates ++ extensions.collect{case InlinePredicate(p) => p},
         )(program.pos, program.info, program.errT)
     }).execute[Program](input)
+
+    // Added for demo
+    printPrograms(input, rewrittenProgram)
+    rewrittenProgram
+  }
+
+  private[this] def printPrograms(beforeInline: Program, afterInline: Program): Unit = {
+    println(s"============ INPUT PROGRAM ============")
+    println(s"$beforeInline")
+    println(s"========== END INPUT PROGRAM ==========")
+    println(s"========== REWRITTEN PROGRAM ==========")
+    println(s"$afterInline")
+    println(s"======== END REWRITTEN PROGRAM ========")
   }
 }
