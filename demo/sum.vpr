@@ -1,14 +1,14 @@
-predicate nonZero(k: Int)
+predicate nonNeg(k: Int)
 {
   0 <= k
 }
 
 
 method sum(n: Int) returns (res: Int)
-  requires nonZero(n) 
+  requires nonNeg(n) 
   ensures  res == n * (n + 1) / 2
 {
-  unfold nonZero(n)
+  unfold nonNeg(n)
   res := 0
   var i: Int := 0;
   while(i <= n)
@@ -18,5 +18,5 @@ method sum(n: Int) returns (res: Int)
     res := res + i
     i := i + 1
   }
-  fold nonZero(n)
+  fold nonNeg(n)
 }
