@@ -6,7 +6,6 @@ import viper.silver.ast.Program
 import viper.silver.plugin.{ParserPluginTemplate, SilverPlugin}
 import viper.silver.parser.ParserExtension
 import viper.silver.parser.FastParser._
-import viper.silver.parser._
 import White._
 
 class InlinePredicatePlugin extends SilverPlugin with ParserPluginTemplate
@@ -28,6 +27,7 @@ class InlinePredicatePlugin extends SilverPlugin with ParserPluginTemplate
   override def beforeVerify(input: Program): Program = {
     val rewrittenMethods = input.methods.map { method =>
       val inlinePredIds = input.extensions.collect({case InlinePredicate(p) => p.name}).toSet
+      checkNestedPreds(inlinePredIds, input)
       val recursivePreds = checkRecursive(inlinePredIds, input)
       // TODO: Do we also need to inline in inhale/exhale/assert/assume and package/apply statements?
       val (prePredIds, postPredIds) = getPrePostPredIds(method, input, inlinePredIds)
