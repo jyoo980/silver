@@ -28,10 +28,13 @@ class InlinePredicatePlugin extends SilverPlugin with ParserPluginTemplate
     val rewrittenMethods = input.methods.map { method =>
       val inlinePredIds = input.extensions.collect({case InlinePredicate(p) => p.name}).toSet
       val recursivePreds = checkRecursive(inlinePredIds, input) ++ checkMutualRecursive(inlinePredIds, input)
+
+      // No-op preds: preds for which we don't want to do any work for
+      val noopPreds = checkNestedPreds(inlinePredIds, input) ++ recursivePreds
       // TODO: Do we also need to inline in inhale/exhale/assert/assume and package/apply statements?
       val (prePredIds, postPredIds) = getPrePostPredIds(method, input, inlinePredIds)
-      val prePredIdsNoRecur = prePredIds.diff(recursivePreds.map(_.name))
-      val postPredIdsNoRecur = postPredIds.diff(recursivePreds.map(_.name))
+      val prePredIdsNoRecur = prePredIds.diff(noopPreds.map(_.name))
+      val postPredIdsNoRecur = postPredIds.diff(noopPreds.map(_.name))
       val inlinedPredMethod = inlinePredicates(method, input, prePredIdsNoRecur, postPredIdsNoRecur)
       rewriteMethod(inlinedPredMethod, input, prePredIdsNoRecur, postPredIdsNoRecur)
     }
