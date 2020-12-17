@@ -27,8 +27,7 @@ class InlinePredicatePlugin extends SilverPlugin with ParserPluginTemplate
   override def beforeVerify(input: Program): Program = {
     val rewrittenMethods = input.methods.map { method =>
       val inlinePredIds = input.extensions.collect({case InlinePredicate(p) => p.name}).toSet
-      checkNestedPreds(inlinePredIds, input)
-      val recursivePreds = checkRecursive(inlinePredIds, input)
+      val recursivePreds = checkRecursive(inlinePredIds, input) ++ checkMutualRecursive(inlinePredIds, input)
       // TODO: Do we also need to inline in inhale/exhale/assert/assume and package/apply statements?
       val (prePredIds, postPredIds) = getPrePostPredIds(method, input, inlinePredIds)
       val prePredIdsNoRecur = prePredIds.diff(recursivePreds.map(_.name))
@@ -41,7 +40,7 @@ class InlinePredicatePlugin extends SilverPlugin with ParserPluginTemplate
       case program@Program(_, _, _, predicates, methods, extensions) =>
         program.copy(
           methods = rewrittenMethods,
-          predicates = predicates ++ extensions.collect{case InlinePredicate(p) => p},  
+          predicates = predicates ++ extensions.collect{case InlinePredicate(p) => p},
         )(program.pos, program.info, program.errT)
     }).execute[Program](input)
   }
