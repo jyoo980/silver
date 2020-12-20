@@ -98,35 +98,4 @@ class InlineErrorCheckerTest extends FunSuite with InlineErrorChecker with Inlin
     val result = checkMutualRecursive(Set(firstPredId, secondPredId), program)
     result.size == 2 && result(firstPred) && result(secondPred)
   }
-
-  test("predicatesCalledBy should evaluate to None given a predicate with an empty body") {
-    val emptyPred = Predicate("empty", Seq(), body = None)()
-
-    nonRecursivePredsCalledBy(emptyPred).isEmpty
-  }
-
-  test("predicatesCalledBy should not return predicates names for recursive preds") {
-    val predId = "rec"
-    val maybeRecursiveBody = Some(PredicateAccessPredicate(PredicateAccess(Seq(), predId)(), FullPerm.apply()())())
-    val recursivePred = Predicate(predId, formalArgs = Seq(), body = maybeRecursiveBody)()
-
-    nonRecursivePredsCalledBy(recursivePred).isEmpty
-  }
-
-  test("predicatesCalledBy should return predicates called in the body of the given predicate") {
-    val calledPredId = "F"
-    val recursivePredId = "loop"
-    val maybeRecursiveBody = Some(
-      And(
-        PredicateAccessPredicate(PredicateAccess(Seq(), recursivePredId)(), FullPerm.apply()())(),
-        PredicateAccessPredicate(PredicateAccess(Seq(), calledPredId)(), FullPerm.apply()())(),
-      )()
-    )
-    val pred = Predicate("loop", formalArgs = Seq(), body = maybeRecursiveBody)()
-
-    val maybeResult = nonRecursivePredsCalledBy(pred)
-    maybeResult.fold(false) { result =>
-      result.size == 1 && result(calledPredId)
-    }
-  }
 }

@@ -44,28 +44,6 @@ trait InlineErrorChecker {
   }
 
   /**
-    * Given a predicate, evaluate to a set containing the names of all predicates called by it.
-    * Only return the names of predicates called that aren't equal to itself.
-    *
-    * @param pred the predicate we want to collect the names of inner predicate calls for.
-    * @return a set of the ids of predicates called in the given predicate.
-    */
-  def nonRecursivePredsCalledBy(pred: Predicate): Option[Set[String]] =
-    pred.body.map { body =>
-      val children = body.subnodes
-      // Forgive me Father Alonzo for I have Sinned
-      var calledPreds = Set[String]()
-      children.foreach { child =>
-        child.visit {
-          case PredicateAccessPredicate(calledPred, _) =>
-            if (calledPred.predicateName != pred.name)
-              calledPreds += calledPred.predicateName
-        }
-      }
-      calledPreds
-    }
-
-  /**
     * Given a predicate id and possibly its body, search the body for a node of type
     * PredicateAccessPredicate(...) with the name identical to the predicate id.
     * If such a node is found, the predicate is recursively defined.
