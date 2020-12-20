@@ -4,7 +4,7 @@ import viper.silver.ast._
 import viper.silver.ast.utility.ViperStrategy
 import viper.silver.ast.utility.rewriter.Traverse
 
-trait InlineRewrite extends PredicateExpansion {
+trait InlineRewrite extends PredicateExpansion with InlineErrorChecker {
   def inlinePredicates(method: Method, program: Program, cond: String => Boolean): Method = {
     val expandedPres = method.pres.map(expandExpression(_, method, program, cond))
     val expandedPosts = method.posts.map(expandExpression(_, method, program, cond))
@@ -16,8 +16,9 @@ trait InlineRewrite extends PredicateExpansion {
     )(method.pos, method.info, method.errT)
   }
 
-  def rewriteMethod(method: Method, cond: String => Boolean): Method = {
-    val rewrittenBody = method.body.map(removeFoldUnfolds(_, cond))
+  def rewriteMethod(method: Method, cond: String => Boolean, recursivePreds: Set[Predicate]): Method = {
+    val predsIdsCalledByRecursivePreds = recursivePreds.flatMap(nonRecursivePredsCalledBy).flatten
+    val rewrittenBody = method.body.map(removeFoldUnfolds(_, cond, predsIdsCalledByRecursivePreds))
     method.copy(body = rewrittenBody)(method.pos, method.info, method.errT)
   }
 
@@ -91,12 +92,12 @@ trait InlineRewrite extends PredicateExpansion {
     * @param cond The condition a predicate must satisfy to no longer require (un)folding.
     * @return The Seqn with all above unfolds and folds removed.
     */
-  private[this] def removeFoldUnfolds(stmts: Seqn, cond: String => Boolean): Seqn = {
+  private[this] def removeFoldUnfolds(stmts: Seqn, cond: String => Boolean, predsCalledByRecursivePreds: Set[String]): Seqn = {
     ViperStrategy.Slim({
       case seqn@Seqn(ss, _) =>
         seqn.copy(ss = ss.filterNot {
-          case Fold(PredicateAccessPredicate(PredicateAccess(_, name), _)) => cond(name)
-          case Unfold(PredicateAccessPredicate(PredicateAccess(_, name), _)) => cond(name)
+          case Fold(PredicateAccessPredicate(PredicateAccess(_, name), _)) => cond(name) && !predsCalledByRecursivePreds(name)
+          case Unfold(PredicateAccessPredicate(PredicateAccess(_, name), _)) => cond(name) && !predsCalledByRecursivePreds(name)
           case _ => false
         })(seqn.pos, seqn.info, seqn.errT)
     }, Traverse.TopDown).execute[Seqn](stmts)
