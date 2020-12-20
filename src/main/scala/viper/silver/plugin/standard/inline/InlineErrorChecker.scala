@@ -52,10 +52,9 @@ trait InlineErrorChecker {
     */
   def nonRecursivePredsCalledBy(pred: Predicate): Option[Set[String]] =
     pred.body.map { body =>
-      val children = body.subnodes
       // Forgive me Father Alonzo for I have Sinned
       var calledPreds = Set[String]()
-      children.foreach { child =>
+      body.foreach { child =>
         child.visit {
           case PredicateAccessPredicate(calledPred, _) =>
             if (calledPred.predicateName != pred.name)
