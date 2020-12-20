@@ -28,9 +28,11 @@ class InlinePredicatePlugin extends SilverPlugin with ParserPluginTemplate
 
   override def beforeVerify(input: Program): Program = {
     val allPredIds = input.predicates.collect{ case p if p.body.nonEmpty => p.name }.toSet
-    val recursivePredIds = (checkRecursive(allPredIds, input) ++ checkMutualRecursive(allPredIds, input)).map(_.name)
-    val nonrecursivePredIds = allPredIds.diff(recursivePredIds)
-    val cond = { pred: String => nonrecursivePredIds(pred) }
+    val recursivePreds = checkRecursive(allPredIds, input) ++ checkMutualRecursive(allPredIds, input)
+    val recursivePredIds = recursivePreds.map(_.name)
+    val calledByRecursivePredIds = recursivePreds.flatMap(nonRecursivePredsCalledBy).flatten
+    val nonRecursivePredIds = allPredIds.diff(recursivePredIds)
+    val cond = { pred: String => nonRecursivePredIds(pred) && !calledByRecursivePredIds(pred) }
     // val inlinePredIds = input.extensions.collect({
     //   case InlinePredicate(p) if p.body.isDefined => p.name
     // }).toSet
