@@ -5,6 +5,7 @@ import viper.silver.ast.utility.ViperStrategy
 import viper.silver.ast.utility.rewriter.Traverse
 
 trait InlineRewrite extends PredicateExpansion with InlineErrorChecker {
+  
   def inlinePredicates(method: Method, program: Program, cond: String => Boolean): Method = {
     val expandedPres = method.pres.map(expandExpression(_, method, program, cond))
     val expandedPosts = method.posts.map(expandExpression(_, method, program, cond))

@@ -42,12 +42,11 @@ class InlinePredicatePlugin extends SilverPlugin with ParserPluginTemplate
       rewriteMethod(inlinedPredMethod, cond, recursivePreds)
     }
     ViperStrategy.Slim({
-      case program@Program(_, _, _, predicates, _, extensions) =>
+      case program: Program =>
         program.copy(
           methods = rewrittenMethods,
-          predicates = predicates ++ extensions.collect {
-            case inlinePred: InlinePredicate => inlinePred.toPredicate
-          },
+          functions = rewrittenFunctions,
+          predicates = allPredicates
         )(program.pos, program.info, program.errT)
     }).execute[Program](input)
   }
