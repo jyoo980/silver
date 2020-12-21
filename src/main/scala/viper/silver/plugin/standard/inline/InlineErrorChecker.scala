@@ -48,25 +48,28 @@ trait InlineErrorChecker {
     * Only return the names of predicates called that aren't equal to itself.
     *
     * @param pred the predicate we want to collect the names of inner predicate calls for.
+    * @param recursivePredIds the ids we wish to exclude from the collection of called pred ids.
+    * @param program the program for which we perform this collection.
     * @return a set of the ids of predicates called in the given predicate.
     */
-  def nonRecursivePredsCalledBy(pred: Predicate, program: Program, recursivePredNames: Set[String]): Option[Set[String]] =
-    pred.body.map { body =>
+  def nonRecursivePredsCalledBy(pred: Predicate, recursivePredIds: Set[String], program: Program): Set[String] = {
+    var calledPredIds = Set[String]()
+    pred.body.foreach { body =>
       // Forgive me Father Alonzo for I have Sinned
-      var calledPreds = Set[String]()
       body.foreach { child =>
         child.visit {
           case PredicateAccessPredicate(calledPredAcc, _) =>
-            if (!recursivePredNames(calledPredAcc.predicateName)) {
+            if (!recursivePredIds(calledPredAcc.predicateName)) {
               val calledPredLiteral = program.findPredicate(calledPredAcc.predicateName)
-              calledPreds += calledPredAcc.predicateName
+              calledPredIds += calledPredAcc.predicateName
               // I don't like using .getOrElse but it's type-safe in this case
-              calledPreds ++= nonRecursivePredsCalledBy(calledPredLiteral, program, recursivePredNames).getOrElse(Set[String]())
+              calledPredIds ++= nonRecursivePredsCalledBy(calledPredLiteral, recursivePredIds, program)
             }
         }
       }
-      calledPreds
     }
+    calledPredIds
+  }
 
   /**
     * Given a predicate id and possibly its body, search the body for a node of type

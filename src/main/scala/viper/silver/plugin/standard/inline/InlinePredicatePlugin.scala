@@ -30,9 +30,8 @@ class InlinePredicatePlugin extends SilverPlugin with ParserPluginTemplate
     val allPredIds = input.predicates.collect{ case p if p.body.nonEmpty => p.name }.toSet
     val recursivePreds = checkRecursive(allPredIds, input) ++ checkMutualRecursive(allPredIds, input)
     val recursivePredIds = recursivePreds.map(_.name)
-    val predsIdsCalledByOtherPreds = recursivePreds.flatMap(nonRecursivePredsCalledBy(_, input, recursivePredIds)).flatten
-    val nonRecursivePredIds = allPredIds.diff(recursivePredIds)
-    val cond = { pred: String => nonRecursivePredIds(pred) && !predsIdsCalledByOtherPreds(pred) }
+    val predIdsCalledByRecursivePreds = recursivePreds.flatMap(nonRecursivePredsCalledBy(_, recursivePredIds, input))
+    val cond = { pred: String => !recursivePredIds(pred) && !predIdsCalledByRecursivePreds(pred) }
     // val inlinePredIds = input.extensions.collect({
     //   case InlinePredicate(p) if p.body.isDefined => p.name
     // }).toSet
