@@ -103,7 +103,7 @@ class InlineErrorCheckerTest extends FunSuite with InlineErrorChecker with Inlin
     val emptyPred = Predicate("empty", Seq(), body = None)()
     val program = programCopy()
 
-    nonRecursivePredsCalledBy(emptyPred, program).isEmpty
+    nonRecursivePredsCalledBy(emptyPred, program, Set()).isEmpty
   }
 
   test("predicatesCalledBy should not return predicates names for recursive preds") {
@@ -112,7 +112,7 @@ class InlineErrorCheckerTest extends FunSuite with InlineErrorChecker with Inlin
     val recursivePred = Predicate(predId, formalArgs = Seq(), body = maybeRecursiveBody)()
     val program = programCopy()
 
-    nonRecursivePredsCalledBy(recursivePred, program).isEmpty
+    nonRecursivePredsCalledBy(recursivePred, program, Set("rec")).isEmpty
   }
 
   test("predicatesCalledBy should return predicates called in the body of the given predicate") {
@@ -128,7 +128,7 @@ class InlineErrorCheckerTest extends FunSuite with InlineErrorChecker with Inlin
     val program = programCopy(predicates = Seq(predicateForF))
     val pred = Predicate("loop", formalArgs = Seq(), body = maybeRecursiveBody)()
 
-    val maybeResult = nonRecursivePredsCalledBy(pred, program)
+    val maybeResult = nonRecursivePredsCalledBy(pred, program, Set("loop"))
     maybeResult.fold(false) { result =>
       result.size == 1 && result(calledPredId)
     }
@@ -168,9 +168,9 @@ class InlineErrorCheckerTest extends FunSuite with InlineErrorChecker with Inlin
       )
     )
 
-    val maybeResult = nonRecursivePredsCalledBy(loopPred, program)
+    val maybeResult = nonRecursivePredsCalledBy(loopPred, program, Set("loop"))
     maybeResult.fold(false) { result =>
-      result.size == 2 && Set(f, g).subsetOf(result)
+      result.size == 2 && Set(f, g) == result
     }
   }
 }
