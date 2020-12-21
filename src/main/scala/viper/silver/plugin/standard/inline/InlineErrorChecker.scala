@@ -62,7 +62,6 @@ trait InlineErrorChecker {
             if (!recursivePredIds(calledPredAcc.predicateName)) {
               val calledPredLiteral = program.findPredicate(calledPredAcc.predicateName)
               calledPredIds += calledPredAcc.predicateName
-              // I don't like using .getOrElse but it's type-safe in this case
               calledPredIds ++= nonRecursivePredsCalledBy(calledPredLiteral, recursivePredIds, program)
             }
         }
