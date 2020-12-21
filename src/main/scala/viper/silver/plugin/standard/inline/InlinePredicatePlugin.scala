@@ -27,26 +27,27 @@ class InlinePredicatePlugin extends SilverPlugin with ParserPluginTemplate
   }
 
   override def beforeVerify(input: Program): Program = {
-    val rewrittenMethods = input.methods.map { method =>
-      val allPredIds = input.predicates.collect{ case p if p.body.nonEmpty => p.name }.toSet
-      val recursivePredIds = (checkRecursive(allPredIds, input) ++ checkMutualRecursive(allPredIds, input)).map(_.name)
-      val nonrecursivePredIds = allPredIds.diff(recursivePredIds)
-      val cond = { pred: String => nonrecursivePredIds(pred) }
-      // val inlinePredIds = input.extensions.collect({
-      //   case InlinePredicate(p) if p.body.isDefined => p.name
-      // }).toSet
-      // val nonrecursiveInlinePredIds = inlinePredIds.diff(recursivePredIds)
-      // val cond = { pred: String => nonrecursiveInlinePredIds(pred) }
-      val inlinedPredMethod = inlinePredicates(method, input, cond)
-      rewriteMethod(inlinedPredMethod, cond)
+    val allPredIds = input.predicates.collect{ case p if p.body.nonEmpty => p.name }.toSet
+    val recursivePreds = checkRecursive(allPredIds, input) ++ checkMutualRecursive(allPredIds, input)
+    val recursivePredIds = recursivePreds.map(_.name)
+    val predIdsCalledByRecursivePreds = recursivePreds.flatMap(nonRecursivePredsCalledBy(_, recursivePredIds, input))
+    val cond = { pred: String => !recursivePredIds(pred) && !predIdsCalledByRecursivePreds(pred) }
+    // val inlinePredIds = input.extensions.collect({
+    //   case InlinePredicate(p) if p.body.isDefined => p.name
+    // }).toSet
+    // val nonrecursiveInlinePredIds = inlinePredIds.diff(recursivePredIds)
+    // val cond = { pred: String => nonrecursiveInlinePredIds(pred) }
+    val rewrittenMethods = input.methods.map(rewriteMethod(_, input, cond))
+    val rewrittenFunctions = input.functions.map(rewriteFunction(_, input, cond))
+    val allPredicates = input.predicates ++ input.extensions.collect {
+      case inlinedPred: InlinePredicate => inlinedPred.toPredicate
     }
     ViperStrategy.Slim({
-      case program@Program(_, _, _, predicates, _, extensions) =>
+      case program: Program =>
         program.copy(
           methods = rewrittenMethods,
-          predicates = predicates ++ extensions.collect {
-            case inlinePred: InlinePredicate => inlinePred.toPredicate
-          },
+          functions = rewrittenFunctions,
+          predicates = allPredicates
         )(program.pos, program.info, program.errT)
     }).execute[Program](input)
   }
