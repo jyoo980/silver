@@ -50,15 +50,19 @@ trait InlineErrorChecker {
     * @param pred the predicate we want to collect the names of inner predicate calls for.
     * @return a set of the ids of predicates called in the given predicate.
     */
-  def nonRecursivePredsCalledBy(pred: Predicate): Option[Set[String]] =
+  def nonRecursivePredsCalledBy(pred: Predicate, program: Program): Option[Set[String]] =
     pred.body.map { body =>
       // Forgive me Father Alonzo for I have Sinned
       var calledPreds = Set[String]()
       body.foreach { child =>
         child.visit {
-          case PredicateAccessPredicate(calledPred, _) =>
-            if (calledPred.predicateName != pred.name)
-              calledPreds += calledPred.predicateName
+          case PredicateAccessPredicate(calledPredAcc, _) =>
+            if (calledPredAcc.predicateName != pred.name) {
+              val calledPredLiteral = program.findPredicate(calledPredAcc.predicateName)
+              calledPreds += calledPredAcc.predicateName
+              // I don't like using .getOrElse but it's type-safe in this case
+              calledPreds ++= nonRecursivePredsCalledBy(calledPredLiteral, program).getOrElse(Set[String]())
+            }
         }
       }
       calledPreds

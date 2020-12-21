@@ -1,7 +1,7 @@
 package plugin.inline
 
 import org.scalatest.FunSuite
-import viper.silver.ast.{Add, And, FullPerm, IntLit, Predicate, PredicateAccess, PredicateAccessPredicate}
+import viper.silver.ast._
 import viper.silver.plugin.standard.inline.InlineErrorChecker
 
 class InlineErrorCheckerTest extends FunSuite with InlineErrorChecker with InlineTestFixture {
@@ -101,16 +101,18 @@ class InlineErrorCheckerTest extends FunSuite with InlineErrorChecker with Inlin
 
   test("predicatesCalledBy should evaluate to None given a predicate with an empty body") {
     val emptyPred = Predicate("empty", Seq(), body = None)()
+    val program = programCopy()
 
-    nonRecursivePredsCalledBy(emptyPred).isEmpty
+    nonRecursivePredsCalledBy(emptyPred, program).isEmpty
   }
 
   test("predicatesCalledBy should not return predicates names for recursive preds") {
     val predId = "rec"
     val maybeRecursiveBody = Some(PredicateAccessPredicate(PredicateAccess(Seq(), predId)(), FullPerm.apply()())())
     val recursivePred = Predicate(predId, formalArgs = Seq(), body = maybeRecursiveBody)()
+    val program = programCopy()
 
-    nonRecursivePredsCalledBy(recursivePred).isEmpty
+    nonRecursivePredsCalledBy(recursivePred, program).isEmpty
   }
 
   test("predicatesCalledBy should return predicates called in the body of the given predicate") {
@@ -122,11 +124,53 @@ class InlineErrorCheckerTest extends FunSuite with InlineErrorChecker with Inlin
         PredicateAccessPredicate(PredicateAccess(Seq(), calledPredId)(), FullPerm.apply()())(),
       )()
     )
+    val predicateForF = Predicate(calledPredId, Seq(), None)()
+    val program = programCopy(predicates = Seq(predicateForF))
     val pred = Predicate("loop", formalArgs = Seq(), body = maybeRecursiveBody)()
 
-    val maybeResult = nonRecursivePredsCalledBy(pred)
+    val maybeResult = nonRecursivePredsCalledBy(pred, program)
     maybeResult.fold(false) { result =>
       result.size == 1 && result(calledPredId)
+    }
+  }
+
+  test("predicatesCalledBy should traverse subpredicates") {
+    /*
+    predicate F(this: Ref) {
+      G(this)
+    }
+
+    predicate G(this: Ref) {
+      acc(x.f)
+    }
+
+    predicate loop(this: Ref) {
+      loop(this) && F(this)
+    }
+     */
+    val f = "F"
+    val g = "G"
+    val loop = "loop"
+    val fBody = Some(PredicateAccessPredicate(PredicateAccess(Seq(), g)(), FullPerm.apply()())())
+    val gBody = Some(FieldAccessPredicate(FieldAccess(LocalVar("x", Ref)(),Field("left", Int)(NoPosition))(), FullPerm.apply()())())
+    val loopBody = Some(
+      And(
+        PredicateAccessPredicate(PredicateAccess(Seq(), f)(), FullPerm.apply()())(),
+        PredicateAccessPredicate(PredicateAccess(Seq(), loop)(), FullPerm.apply()())(),
+      )()
+    )
+    val loopPred = Predicate("loop", formalArgs = Seq(), body = loopBody)()
+    val program = programCopy(
+      predicates = Seq(
+        loopPred,
+        Predicate(f, formalArgs = Seq(), body = fBody)(),
+        Predicate(g, formalArgs = Seq(), body = gBody)(),
+      )
+    )
+
+    val maybeResult = nonRecursivePredsCalledBy(loopPred, program)
+    maybeResult.fold(false) { result =>
+      result.size == 2 && Set(f, g).subsetOf(result)
     }
   }
 }
