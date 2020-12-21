@@ -57,7 +57,7 @@ trait InlineErrorChecker {
       body.foreach { child =>
         child.visit {
           case PredicateAccessPredicate(calledPredAcc, _) =>
-            if (calledPredAcc.predicateName != pred.name && !recursivePredNames(calledPredAcc.predicateName)) {
+            if (!recursivePredNames(calledPredAcc.predicateName)) {
               val calledPredLiteral = program.findPredicate(calledPredAcc.predicateName)
               calledPreds += calledPredAcc.predicateName
               // I don't like using .getOrElse but it's type-safe in this case
