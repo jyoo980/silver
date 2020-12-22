@@ -81,13 +81,17 @@ trait InlineErrorChecker {
     */
   private[this] def isRecursivePred(predId: String, maybePredBody: Option[Node]): Boolean =
     maybePredBody.fold(false) { predBody =>
+      val hasDirectRecursiveCall = predBody match {
+        case PredicateAccessPredicate(PredicateAccess(_, name), _) => name == predId
+        case _ => false
+      }
       val subNodes = predBody.subnodes
       val existsAtTopLevelNode = subNodes.exists {
         case PredicateAccessPredicate(PredicateAccess(_, name), _) => name == predId
         case _ => false
       }
       lazy val isInChildNodes = subNodes.exists(child => isRecursivePred(predId, Some(child)))
-      existsAtTopLevelNode || isInChildNodes
+      hasDirectRecursiveCall || existsAtTopLevelNode || isInChildNodes
     }
 
   private[this] def prettyPrint(preds: Set[Predicate], errorReason: String): Unit = {
